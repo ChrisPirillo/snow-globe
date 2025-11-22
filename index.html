@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics (GTM) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1CQ4D3VQ3L"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-1CQ4D3VQ3L');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO Metadata -->
+    <title>Snow Globe</title>
+    <meta name="description" content="Interactive 3D Fluid Snow Globe simulation. Shake to agitate particles, customize gravity, physics, and visual effects.">
+    <meta name="keywords" content="Snow Globe, Interactive 3D, Fluid Dynamics, WebGL, Three.js, Physics Simulation, Digital Toy, Relaxing, Winter, Holiday">
+    <meta name="author" content="Chris Pirillo">
+    <link rel="canonical" href="https://pirillo.com/arcade/snow-globe.html">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pirillo.com/arcade/snow-globe.html">
+    <meta property="og:title" content="Snow Globe">
+    <meta property="og:description" content="Interactive 3D Fluid Snow Globe simulation. Shake to agitate particles, customize gravity, physics, and visual effects.">
+    <meta property="og:image" content="https://pirillo.com/arcade/images/snow-globe.png">
+    <meta property="og:site_name" content="Pirillo Arcade">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@ChrisPirillo">
+    <meta name="twitter:creator" content="@ChrisPirillo">
+    <meta name="twitter:title" content="Snow Globe">
+    <meta name="twitter:description" content="Interactive 3D Fluid Snow Globe simulation. Shake to agitate particles, customize gravity, physics, and visual effects.">
+    <meta name="twitter:image" content="https://pirillo.com/arcade/images/snow-globe.png">
+
+    <!-- Performance Hints -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Snow Globe",
+      "url": "https://pirillo.com/arcade/snow-globe.html",
+      "image": "https://pirillo.com/arcade/images/snow-globe.png",
+      "description": "An interactive 3D fluid snow globe simulation powered by WebGL and Three.js.",
+      "genre": "Simulation",
+      "author": {
+        "@type": "Person",
+        "name": "Chris Pirillo",
+        "url": "https://pirillo.com",
+        "sameAs": ["https://twitter.com/ChrisPirillo"]
+      },
+      "applicationCategory": "Entertainment",
+      "operatingSystem": "Any"
+    }
+    </script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; color: white; }
+        canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+        
+        /* Menu Button */
+        #menu-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            cursor: pointer;
+            z-index: 100;
+            background: rgba(255,255,255,0.1);
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            backdrop-filter: blur(5px);
+            transition: 0.3s;
+            user-select: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0;
+        }
+        #menu-btn:hover { background: rgba(255,255,255,0.25); }
+        
+        /* SVG Icons */
+        .icon-svg {
+            width: 20px;
+            height: 20px;
+            stroke: white;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        /* Settings Panel */
+        #settings {
+            position: absolute;
+            top: 0; left: -340px; /* Hidden by default */
+            width: 320px;
+            height: 100%;
+            background: rgba(10, 12, 18, 0.95);
+            backdrop-filter: blur(25px);
+            padding: 80px 20px 40px 20px;
+            box-sizing: border-box;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 90;
+            border-right: 1px solid rgba(255,255,255,0.15);
+            overflow-y: auto;
+            box-shadow: 10px 0 40px rgba(0,0,0,0.5);
+        }
+        #settings.open { left: 0; }
+
+        /* Section Headers */
+        .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #66aaff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
+        }
+        .section-title:first-of-type { margin-top: 0; }
+
+        /* Controls */
+        .control-group { margin-bottom: 16px; }
+        .control-label { 
+            display: flex; justify-content: space-between; 
+            font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; 
+            color: rgba(255,255,255,0.7);
+        }
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.15);
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px; height: 14px;
+            background: #e0e0e0;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid #111;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); background: #fff; border-color: #66aaff; }
+
+        /* Standardized Buttons */
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.2s ease;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        .action-btn:hover { 
+            background: rgba(255,255,255,0.15); 
+            border-color: rgba(255,255,255,0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .action-btn:active { transform: translateY(1px); }
+
+        /* Specific Button Styles */
+        #shakeBtn { 
+            background: linear-gradient(135deg, #3366cc, #113388); 
+            border-color: #4488ff;
+        }
+        #shakeBtn:hover { background: linear-gradient(135deg, #4488ff, #2255cc); }
+
+    </style>
+</head>
+<body>
+
+    <div id="menu-btn" onclick="toggleMenu()" role="button" aria-label="Toggle Settings Menu" tabindex="0">
+        <!-- Hamburger Icon -->
+        <svg id="icon-menu" class="icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+        <!-- Close Icon -->
+        <svg id="icon-close" class="icon-svg" viewBox="0 0 24 24" style="display: none;" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    </div>
+
+    <div id="settings" role="region" aria-label="Settings Controls">
+        <div class="control-group">
+            <button class="action-btn" id="shakeBtn">Shake Globe</button>
+            <button class="action-btn" id="randomBtn">Randomize Settings</button>
+            <button class="action-btn" id="reforestBtn">Regenerate Forest</button>
+        </div>
+
+        <div class="section-title">Physics</div>
+        
+        <div class="control-group">
+            <div class="control-label"><span>Gravity</span></div>
+            <input type="range" min="0" max="0.0001" step="0.000001" id="inpGravity" aria-label="Gravity Control">
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label"><span>Viscosity (Drag)</span></div>
+            <input type="range" min="0.90" max="0.999" step="0.001" id="inpDrag" aria-label="Viscosity Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Max Fall Speed</span></div>
+            <input type="range" min="0.005" max="0.1" step="0.001" id="inpSpeed" aria-label="Speed Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Turbulence (Jitter)</span></div>
+            <input type="range" min="0" max="0.002" step="0.0001" id="inpTurbulence" aria-label="Turbulence Control">
+        </div>
+
+        <div class="section-title">Shake Dynamics</div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Shake Power</span></div>
+            <input type="range" min="0.1" max="2.0" step="0.1" id="inpShakePower" aria-label="Shake Power Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Settling Time (Decay)</span></div>
+            <input type="range" min="0.90" max="0.99" step="0.001" id="inpShakeDecay" aria-label="Shake Decay Control">
+        </div>
+
+        <div class="section-title">Visuals</div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Particle Size</span></div>
+            <input type="range" min="0.1" max="2.0" step="0.1" id="inpSize" aria-label="Particle Size Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Glitter Threshold</span></div>
+            <input type="range" min="0.5" max="0.99" step="0.01" id="inpGlitter" aria-label="Glitter Threshold Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Flash Intensity</span></div>
+            <input type="range" min="0.5" max="5.0" step="0.1" id="inpFlash" aria-label="Flash Intensity Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Base Brightness</span></div>
+            <input type="range" min="0.0" max="1.0" step="0.05" id="inpBaseBright" aria-label="Base Brightness Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Twinkle Speed</span></div>
+            <input type="range" min="0.1" max="5.0" step="0.1" id="inpTumble" aria-label="Twinkle Speed Control">
+        </div>
+
+        <div class="control-group">
+            <div class="control-label"><span>Floor Level</span></div>
+            <input type="range" min="-0.2" max="0.5" step="0.01" id="inpFloor" aria-label="Floor Level Control">
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- UI LOGIC ---
+        window.toggleMenu = () => {
+            const settings = document.getElementById('settings');
+            settings.classList.toggle('open');
+            
+            const isOpen = settings.classList.contains('open');
+            document.getElementById('icon-menu').style.display = isOpen ? 'none' : 'block';
+            document.getElementById('icon-close').style.display = isOpen ? 'block' : 'none';
+        };
+
+        // ESC key closes menu
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const settings = document.getElementById('settings');
+                if (settings.classList.contains('open')) {
+                    settings.classList.remove('open');
+                    document.getElementById('icon-menu').style.display = 'block';
+                    document.getElementById('icon-close').style.display = 'none';
+                }
+            }
+        });
+
+        // --- CONFIGURATION ---
+        const CONFIG = {
+            radius: 12,
+            count1: 20000, 
+            count2: 15000, 
+            count3: 15000,
+            totalCount: 50000,
+            
+            gravity: 0.00002,          
+            drag: 0.995,               
+            brownianForce: 0.0003,     
+            maxVelocity: 0.03,
+            
+            // Shake Settings
+            shakePower: 0.6,
+            shakeDecay: 0.97,
+            
+            // Visuals
+            glitterThreshold: 0.88,    
+            baseBrightness: 0.2,      
+            flashIntensity: 2.0,
+            globalSize: 1.0,
+            tumbleSpeedMult: 1.0,
+            floorLevel: 0.06
+        };
+
+        // Sync Inputs
+        const bindInput = (id, key) => {
+            const el = document.getElementById(id);
+            el.value = CONFIG[key];
+            el.addEventListener('input', (e) => {
+                CONFIG[key] = parseFloat(e.target.value);
+            });
+        };
+        
+        bindInput('inpGravity', 'gravity');
+        bindInput('inpDrag', 'drag');
+        bindInput('inpSpeed', 'maxVelocity');
+        bindInput('inpTurbulence', 'brownianForce'); 
+        bindInput('inpShakePower', 'shakePower');
+        bindInput('inpShakeDecay', 'shakeDecay');
+        bindInput('inpSize', 'globalSize');
+        bindInput('inpGlitter', 'glitterThreshold');
+        bindInput('inpFlash', 'flashIntensity');
+        bindInput('inpBaseBright', 'baseBrightness');
+        bindInput('inpTumble', 'tumbleSpeedMult');
+        bindInput('inpFloor', 'floorLevel');
+
+        // --- RANDOMIZER ---
+        const rFloat = (min, max) => Math.random() * (max - min) + min;
+
+        const randomizeSettings = () => {
+            CONFIG.gravity = rFloat(0.000005, 0.00008);
+            CONFIG.drag = rFloat(0.95, 0.998);
+            CONFIG.maxVelocity = rFloat(0.02, 0.08);
+            CONFIG.brownianForce = rFloat(0.0001, 0.001);
+            CONFIG.shakePower = rFloat(0.3, 1.5);
+            CONFIG.shakeDecay = rFloat(0.92, 0.98);
+            CONFIG.globalSize = rFloat(0.6, 1.6);
+            CONFIG.glitterThreshold = rFloat(0.75, 0.95);
+            CONFIG.flashIntensity = rFloat(1.5, 4.0);
+            CONFIG.baseBrightness = rFloat(0.1, 0.5);
+            CONFIG.tumbleSpeedMult = rFloat(0.5, 2.5);
+            
+            // Update UI elements
+            document.getElementById('inpGravity').value = CONFIG.gravity;
+            document.getElementById('inpDrag').value = CONFIG.drag;
+            document.getElementById('inpSpeed').value = CONFIG.maxVelocity;
+            document.getElementById('inpTurbulence').value = CONFIG.brownianForce;
+            document.getElementById('inpShakePower').value = CONFIG.shakePower;
+            document.getElementById('inpShakeDecay').value = CONFIG.shakeDecay;
+            document.getElementById('inpSize').value = CONFIG.globalSize;
+            document.getElementById('inpGlitter').value = CONFIG.glitterThreshold;
+            document.getElementById('inpFlash').value = CONFIG.flashIntensity;
+            document.getElementById('inpBaseBright').value = CONFIG.baseBrightness;
+            document.getElementById('inpTumble').value = CONFIG.tumbleSpeedMult;
+        };
+        
+        document.getElementById('randomBtn').addEventListener('click', randomizeSettings);
+
+
+        // --- SHADERS ---
+        const vertexShader = `
+            uniform float uSizeScale;
+            attribute float size;
+            attribute float angle;
+            attribute vec3 customColor;
+            varying vec3 vColor;
+            varying float vAngle;
+            void main() {
+                vColor = customColor;
+                vAngle = angle;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_PointSize = (size * uSizeScale) * (600.0 / -mvPosition.z);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `;
+
+        const fragmentShader = `
+            uniform sampler2D map;
+            varying vec3 vColor;
+            varying float vAngle;
+            void main() {
+                vec2 coord = gl_PointCoord - vec2(0.5);
+                float s = sin(vAngle);
+                float c = cos(vAngle);
+                vec2 rotatedCoord = vec2(coord.x * c - coord.y * s, coord.x * s + coord.y * c) + vec2(0.5);
+                vec4 texColor = texture2D(map, rotatedCoord);
+                if (texColor.a < 0.1) discard; 
+                gl_FragColor = vec4(vColor, 1.0) * texColor;
+            }
+        `;
+
+        // --- SCENE INIT ---
+        const scene = new THREE.Scene();
+        scene.background = null; 
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.set(0, 14, 42);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.8;
+        document.body.appendChild(renderer.domElement);
+        
+        // FIX 1: Prevent the renderer from clearing its color buffer automatically
+        renderer.autoClear = false;
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.minDistance = 20;
+        controls.maxDistance = 70;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1;
+
+        // --- NEW BACKGROUND: SEAMLESS 3D NOISE (FIXED SEAM) ---
+        const bgAuroraGeo = new THREE.SphereGeometry(200, 64, 64);
+        const bgAuroraMat = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+            },
+            side: THREE.BackSide,
+            vertexShader: `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vWorldPosition = position.xyz; 
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+                    gl_Position.z = gl_Position.w; // Maximum depth
+                }
+            `,
+            fragmentShader: `
+                #define PI 3.14159265359
+
+                uniform float uTime;
+                uniform vec2 uResolution;
+                varying vec3 vWorldPosition;
+
+                // --- 3D SIMPLEX NOISE (SEAMLESS) ---
+                // Using standard webgl-noise 3D implementation to avoid UV wrapping seams
+                
+                vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+                vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+                float snoise(vec3 v) { 
+                  const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+                  const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+
+                  // First corner
+                  vec3 i  = floor(v + dot(v, C.yyy) );
+                  vec3 x0 = v - i + dot(i, C.xxx) ;
+
+                  // Other corners
+                  vec3 g = step(x0.yzx, x0.xyz);
+                  vec3 l = 1.0 - g;
+                  vec3 i1 = min( g.xyz, l.zxy );
+                  vec3 i2 = max( g.xyz, l.zxy );
+
+                  //   x0 = x0 - 0.0 + 0.0 * C.xxx;
+                  //   x1 = x0 - i1  + 1.0 * C.xxx;
+                  //   x2 = x0 - i2  + 2.0 * C.xxx;
+                  //   x3 = x0 - 1.0 + 3.0 * C.xxx;
+                  vec3 x1 = x0 - i1 + C.xxx;
+                  vec3 x2 = x0 - i2 + C.yyy; // 2.0*C.x = 1/3 = C.y
+                  vec3 x3 = x0 - D.yyy;      // -1.0+3.0*C.x = -0.5 = -D.y
+
+                  // Permutations
+                  i = mod289(i); 
+                  vec4 p = permute( permute( permute( 
+                             i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                           + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
+                           + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+
+                  // Gradients: 7x7 points over a square, mapped onto an octahedron.
+                  // The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
+                  float n_ = 0.142857142857; // 1.0/7.0
+                  vec3  ns = n_ * D.wyz - D.xzx;
+
+                  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);  //  mod(p,7*7)
+
+                  vec4 x_ = floor(j * ns.z);
+                  vec4 y_ = floor(j - 7.0 * x_ );    // mod(j,N)
+
+                  vec4 x = x_ *ns.x + ns.yyyy;
+                  vec4 y = y_ *ns.x + ns.yyyy;
+                  vec4 h = 1.0 - abs(x) - abs(y);
+
+                  vec4 b0 = vec4( x.xy, y.xy );
+                  vec4 b1 = vec4( x.zw, y.zw );
+
+                  vec4 s0 = floor(b0)*2.0 + 1.0;
+                  vec4 s1 = floor(b1)*2.0 + 1.0;
+                  vec4 sh = -step(h, vec4(0.0));
+
+                  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+                  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+
+                  vec3 p0 = vec3(a0.xy,h.x);
+                  vec3 p1 = vec3(a0.zw,h.y);
+                  vec3 p2 = vec3(a1.xy,h.z);
+                  vec3 p3 = vec3(a1.zw,h.w);
+
+                  //Normalise gradients
+                  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+                  p0 *= norm.x;
+                  p1 *= norm.y;
+                  p2 *= norm.z;
+                  p3 *= norm.w;
+
+                  // Mix final noise value
+                  vec4 m = max(0.5 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                  m = m * m;
+                  return 105.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), 
+                                                dot(p2,x2), dot(p3,x3) ) );
+                }
+
+                float fbm(vec3 coord) {
+                    float value = 0.0;
+                    float scale = 0.5;
+                    for (int i = 0; i < 3; i++) { 
+                        value += snoise(coord) * scale;
+                        coord *= 2.0;
+                        scale *= 0.5;
+                    }
+                    return value;
+                }
+
+                void main() {
+                    // Direction from camera center
+                    vec3 rayDir = normalize(vWorldPosition);
+                    
+                    // SEAMLESS NOISE FIX:
+                    // Instead of converting to 2D polar coords (atan/asin) which creates a seam at PI/-PI,
+                    // we pass the 3D ray direction directly into 3D noise.
+                    
+                    float timeOffset = uTime * 0.02; 
+                    
+                    // Use 3D coordinates for noise to ensure no seams on the sphere
+                    float noise1 = fbm(rayDir * 1.5 + vec3(timeOffset, timeOffset * 0.1, 0.0));
+                    float noise2 = fbm(rayDir * 3.0 - vec3(timeOffset * 0.2, 0.0, timeOffset * 0.1));
+                    
+                    float ambience = (noise1 * 0.6 + noise2 * 0.4);
+                    ambience = smoothstep(-0.5, 1.0, ambience); 
+
+                    vec3 deepNight = vec3(0.05, 0.05, 0.1); 
+                    vec3 darkTeal = vec3(0.1, 0.45, 0.5); 
+                    vec3 midnightPurple = vec3(0.4, 0.2, 0.5); 
+                    
+                    vec3 color = mix(deepNight, darkTeal, ambience * 0.7); 
+                    color = mix(color, midnightPurple, pow(sin(rayDir.y * 3.0 + uTime * 0.05) * 0.5 + 0.5, 1.5) * 0.6); 
+                    
+                    gl_FragColor = vec4(color * 1.5, 1.0); 
+                }
+            `
+        });
+        const bgAuroraMesh = new THREE.Mesh(bgAuroraGeo, bgAuroraMat);
+        bgAuroraMesh.renderOrder = -999;
+        scene.add(bgAuroraMesh);
+
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+        scene.add(ambientLight);
+
+        // CHANGED: Optimized Shadow Camera to fix blocky/incongruent shadows
+        // 1. Position strictly overhead (0,50,0)
+        // 2. DECREASED map size to 512. High res (4096) fights softness because pixels are too small to blur effectively.
+        // 3. Tighten camera bounds (left/right/top/bottom) to focus resolution on just the globe
+        const mainLight = new THREE.DirectionalLight(0xffffff, 3.0);
+        mainLight.position.set(0, 50, 0); 
+        mainLight.castShadow = true;
+        
+        // NOTE: Lower resolution + radius = softer, diffused shadows. 
+        // 4096 map = razor sharp. 512 map = soft wash.
+        mainLight.shadow.mapSize.width = 512; 
+        mainLight.shadow.mapSize.height = 512;
+        
+        const d = 15; // Tight bounds around radius 12 globe
+        mainLight.shadow.camera.left = -d;
+        mainLight.shadow.camera.right = d;
+        mainLight.shadow.camera.top = d;
+        mainLight.shadow.camera.bottom = -d;
+        mainLight.shadow.camera.near = 10;
+        mainLight.shadow.camera.far = 100;
+        mainLight.shadow.bias = -0.0005; // Slight bias to prevent acne
+        mainLight.shadow.radius = 8; // Works with 512 map to create a wide soft blur
+        
+        scene.add(mainLight);
+
+        const blueRim = new THREE.SpotLight(0x4488ff, 15.0);
+        blueRim.position.set(-20, 10, -10);
+        blueRim.lookAt(0, 0, 0);
+        scene.add(blueRim);
+
+        const warmRim = new THREE.SpotLight(0xffaa88, 8.0);
+        warmRim.position.set(20, 5, -10);
+        warmRim.lookAt(0, 0, 0);
+        scene.add(warmRim);
+
+        // --- GLOBE ASSETS ---
+        const globeGroup = new THREE.Group();
+        scene.add(globeGroup);
+
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x2b1a10, roughness: 0.7 });
+        const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(13, 14, 4, 64), woodMat);
+        baseMesh.position.y = -2;
+        baseMesh.receiveShadow = true;
+        globeGroup.add(baseMesh);
+
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, metalness: 0.9, roughness: 0.1 });
+        const rimMesh = new THREE.Mesh(new THREE.TorusGeometry(12.8, 0.4, 16, 100), goldMat);
+        rimMesh.rotation.x = Math.PI / 2;
+        rimMesh.position.y = -0.2;
+        globeGroup.add(rimMesh);
+
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });
+        const floorMesh = new THREE.Mesh(new THREE.CylinderGeometry(11.9, 11.9, 0.5, 64), floorMat);
+        floorMesh.position.y = -0.2;
+        floorMesh.receiveShadow = true;
+        globeGroup.add(floorMesh);
+
+        function createTree(x, z, scale) {
+            const g = new THREE.Group();
+            // CHANGED: Increased radialSegments from 8 to 32 for trunk and cones to fix "blocky" look
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4*scale, 0.6*scale, 2*scale, 32), woodMat);
+            trunk.position.y = 1*scale; trunk.castShadow = true; g.add(trunk);
+            
+            const greenMat = new THREE.MeshStandardMaterial({ color: 0x0a3518, roughness: 0.8 });
+            const c1 = new THREE.Mesh(new THREE.ConeGeometry(2.8*scale, 3.5*scale, 32), greenMat); 
+            c1.position.y = 2.5*scale; c1.castShadow = true; g.add(c1);
+            
+            const c2 = new THREE.Mesh(new THREE.ConeGeometry(2.0*scale, 2.8*scale, 32), greenMat); 
+            c2.position.y = 4.5*scale; c2.castShadow = true; g.add(c2);
+            
+            g.position.set(x, 0, z);
+            return g;
+        }
+
+        let forestGroup = new THREE.Group();
+        globeGroup.add(forestGroup);
+
+        function generateRandomForest() {
+            // Clean up existing trees
+            while(forestGroup.children.length > 0){ 
+                forestGroup.remove(forestGroup.children[0]); 
+            }
+
+            const treeCount = 5 + Math.floor(Math.random() * 6); // 5 to 10 trees (less clutter)
+            const existing = [];
+
+            for(let i=0; i<treeCount; i++) {
+                let valid = false;
+                let attempts = 0;
+                let x, z, scale;
+
+                while(!valid && attempts < 50) {
+                    attempts++;
+                    scale = 0.7 + Math.random() * 1.1; 
+                    
+                    // Calculation for Inner boundary safety:
+                    // Max vertical tree extent = ~3.0 * scale
+                    // Inner radius of globe is ~11.5. Buffer = 0.5
+                    const treeExtent = 3.0 * scale; 
+                    const maxDist = Math.max(0, 11.5 - treeExtent - 0.5);
+
+                    const r = Math.random() * maxDist; 
+                    const theta = Math.random() * Math.PI * 2;
+                    x = Math.cos(theta) * r;
+                    z = Math.sin(theta) * r;
+
+                    valid = true;
+                    for(let p of existing) {
+                        const dx = p.x - x;
+                        const dz = p.z - z;
+                        const dist = Math.sqrt(dx*dx + dz*dz);
+                        const minSpacing = (p.scale + scale) * 2.0; 
+                        if(dist < minSpacing) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                }
+
+                if(valid) {
+                    existing.push({x, z, scale});
+                    forestGroup.add(createTree(x, z, scale));
+                }
+            }
+        }
+        generateRandomForest();
+        document.getElementById('reforestBtn').onclick = generateRandomForest;
+
+        // --- TEXTURE GENERATION ---
+        const cv1 = document.createElement('canvas'); cv1.width=64; cv1.height=64;
+        const ctx1 = cv1.getContext('2d');
+        ctx1.fillStyle='#000'; ctx1.fillRect(0,0,64,64); ctx1.fillStyle='#fff';
+        ctx1.beginPath(); ctx1.moveTo(32,0); ctx1.lineTo(40,32); ctx1.lineTo(32,64); ctx1.lineTo(24,32); ctx1.fill();
+        ctx1.beginPath(); ctx1.moveTo(0,32); ctx1.lineTo(32,40); ctx1.lineTo(64,32); ctx1.lineTo(32,24); ctx1.fill();
+        ctx1.beginPath(); ctx1.arc(32,32,6,0,Math.PI*2); ctx1.fill();
+        const texDiamond = new THREE.CanvasTexture(cv1);
+
+        const cv2 = document.createElement('canvas'); cv2.width=64; cv2.height=64;
+        const ctx2 = cv2.getContext('2d');
+        ctx2.fillStyle='#000'; ctx2.fillRect(0,0,64,64); ctx2.fillStyle='#fff';
+        ctx2.beginPath(); ctx2.moveTo(32,8); ctx2.lineTo(38,32); ctx2.lineTo(56,32); ctx2.lineTo(38,38); ctx2.lineTo(32,56); ctx2.lineTo(26,38); ctx2.lineTo(8,32); ctx2.lineTo(26,26); ctx2.fill();
+        const texStar = new THREE.CanvasTexture(cv2);
+
+        const cv3 = document.createElement('canvas'); cv3.width=32; cv3.height=32;
+        const ctx3 = cv3.getContext('2d');
+        ctx3.fillStyle='#000'; ctx3.fillRect(0,0,32,32); ctx3.fillStyle='#ddd';
+        ctx3.beginPath(); ctx3.arc(16,16,10,0,Math.PI*2); ctx3.fill();
+        const texDust = new THREE.CanvasTexture(cv3);
+
+        // --- PARTICLE SYSTEMS SETUP ---
+        const velocities = new Float32Array(CONFIG.totalCount * 3);
+        const physicsData = new Float32Array(CONFIG.totalCount * 3);
+        
+        const geo1 = new THREE.BufferGeometry();
+        const geo2 = new THREE.BufferGeometry();
+        const geo3 = new THREE.BufferGeometry();
+
+        const pos1 = new Float32Array(CONFIG.count1 * 3); const col1 = new Float32Array(CONFIG.count1 * 3); const ang1 = new Float32Array(CONFIG.count1); const size1 = new Float32Array(CONFIG.count1);
+        const pos2 = new Float32Array(CONFIG.count2 * 3); const col2 = new Float32Array(CONFIG.count2 * 3); const ang2 = new Float32Array(CONFIG.count2); const size2 = new Float32Array(CONFIG.count2);
+        const pos3 = new Float32Array(CONFIG.count3 * 3); const col3 = new Float32Array(CONFIG.count3 * 3);
+
+        let offset = 0;
+
+        const initRotated = (count, pArr, cArr, aArr, sArr, sizeBase) => {
+            for(let i=0; i<count; i++) {
+                const masterIdx = offset + i;
+                const i3 = i*3;
+
+                const r = Math.cbrt(Math.random()) * (CONFIG.radius - 1.0);
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                pArr[i3] = r * Math.sin(phi) * Math.cos(theta);
+                pArr[i3+1] = Math.abs(r * Math.cos(phi)) + 0.5;
+                pArr[i3+2] = r * Math.sin(phi) * Math.sin(theta);
+
+                cArr[i3] = CONFIG.baseBrightness; cArr[i3+1] = CONFIG.baseBrightness; cArr[i3+2] = CONFIG.baseBrightness;
+                
+                aArr[i] = Math.random() * Math.PI * 2;
+                sArr[i] = sizeBase * (0.8 + Math.random() * 0.4);
+
+                physicsData[masterIdx*3] = 0.5 + Math.random() * 1.5;     
+                physicsData[masterIdx*3+1] = Math.random() * 1000;        
+                physicsData[masterIdx*3+2] = (Math.random()-0.5) * 0.1;   
+            }
+            offset += count;
+        };
+
+        const initDust = (count, pArr, cArr) => {
+            for(let i=0; i<count; i++) {
+                const masterIdx = offset + i;
+                const i3 = i*3;
+                const r = Math.cbrt(Math.random()) * (CONFIG.radius - 1.0);
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pArr[i3] = r * Math.sin(phi) * Math.cos(theta);
+                pArr[i3+1] = Math.abs(r * Math.cos(phi)) + 0.5;
+                pArr[i3+2] = r * Math.sin(phi) * Math.sin(theta);
+                cArr[i3] = 0.2; cArr[i3+1] = 0.2; cArr[i3+2] = 0.25;
+                physicsData[masterIdx*3] = 0.2 + Math.random() * 0.5;     
+                physicsData[masterIdx*3+1] = Math.random() * 1000;        
+                physicsData[masterIdx*3+2] = 0; 
+            }
+            offset += count;
+        }
+
+        initRotated(CONFIG.count1, pos1, col1, ang1, size1, 0.4);
+        initRotated(CONFIG.count2, pos2, col2, ang2, size2, 0.35);
+        initDust(CONFIG.count3, pos3, col3);
+
+        geo1.setAttribute('position', new THREE.BufferAttribute(pos1, 3)); geo1.setAttribute('customColor', new THREE.BufferAttribute(col1, 3)); geo1.setAttribute('angle', new THREE.BufferAttribute(ang1, 1)); geo1.setAttribute('size', new THREE.BufferAttribute(size1, 1));
+        geo2.setAttribute('position', new THREE.BufferAttribute(pos2, 3)); geo2.setAttribute('customColor', new THREE.BufferAttribute(col2, 3)); geo2.setAttribute('angle', new THREE.BufferAttribute(ang2, 1)); geo2.setAttribute('size', new THREE.BufferAttribute(size2, 1));
+        geo3.setAttribute('position', new THREE.BufferAttribute(pos3, 3)); geo3.setAttribute('color', new THREE.BufferAttribute(col3, 3));
+
+        const shaderMat = new THREE.ShaderMaterial({
+            uniforms: { map: { value: null }, uSizeScale: { value: 1.0 } },
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        
+        const mat1 = shaderMat.clone(); mat1.uniforms.map.value = texDiamond;
+        const mat2 = shaderMat.clone(); mat2.uniforms.map.value = texStar;
+        const mat3 = new THREE.PointsMaterial({
+            size: 0.15, map: texDust, transparent: true, opacity: 0.6,
+            blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: true
+        });
+
+        const mesh1 = new THREE.Points(geo1, mat1);
+        const mesh2 = new THREE.Points(geo2, mat2);
+        const mesh3 = new THREE.Points(geo3, mat3);
+        
+        globeGroup.add(mesh1);
+        globeGroup.add(mesh2);
+        globeGroup.add(mesh3);
+
+        // Glass - Standard Transparent
+        const glassMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(CONFIG.radius, 64, 64),
+            new THREE.MeshPhysicalMaterial({
+                color: 0xffffff, metalness: 0.1, roughness: 0,
+                transparent: true, opacity: 0.12,
+                side: THREE.FrontSide,
+                clearcoat: 1.0
+            })
+        );
+        glassMesh.renderOrder = 3;
+        globeGroup.add(glassMesh);
+
+
+        // --- PHYSICS ENGINE ---
+        let shakeEnergy = 0;
+        let time = 0;
+        let sparkleTime = 0; 
+
+        const shake = () => {
+            shakeEnergy = CONFIG.shakePower; 
+            for(let i=0; i<CONFIG.totalCount; i++) {
+                const i3 = i*3;
+                velocities[i3+1] += (Math.random() + 0.2) * 0.05 * CONFIG.shakePower; 
+                velocities[i3] += (Math.random() - 0.5) * 0.08 * CONFIG.shakePower;   
+                velocities[i3+2] += (Math.random() - 0.5) * 0.08 * CONFIG.shakePower; 
+            }
+        };
+        
+        // Bind shake to pointer down (outside menu)
+        window.addEventListener('pointerdown', (e) => { 
+            if(e.target.closest('#menu-btn') || e.target.closest('#settings')) {
+                return;
+            }
+            shake();
+        });
+        document.getElementById('shakeBtn').onclick = shake;
+
+        const updatePhysics = () => {
+            time += 0.002;
+            sparkleTime += 0.1; 
+            shakeEnergy *= CONFIG.shakeDecay; 
+
+            // Update Uniforms
+            mat1.uniforms.uSizeScale.value = CONFIG.globalSize;
+            mat2.uniforms.uSizeScale.value = CONFIG.globalSize;
+            
+            // Update Background Shader
+            bgAuroraMat.uniforms.uTime.value = time * 20.0;
+            
+            const safeRadius = 11.5; 
+            const limit1 = CONFIG.count1;
+            const limit2 = CONFIG.count1 + CONFIG.count2;
+
+            for(let i=0; i<CONFIG.totalCount; i++) {
+                const i3 = i*3;
+                
+                let x, y, z, positionsArr, colorsArr, anglesArr, localIdx3, localIdx1;
+                let isRotated = false;
+                
+                if (i < limit1) {
+                    positionsArr = pos1; colorsArr = col1; anglesArr = ang1; localIdx3 = i*3; localIdx1 = i; isRotated = true;
+                } else if (i < limit2) {
+                    positionsArr = pos2; colorsArr = col2; anglesArr = ang2; localIdx3 = (i - limit1)*3; localIdx1 = i - limit1; isRotated = true;
+                } else {
+                    positionsArr = pos3; colorsArr = col3; localIdx3 = (i - limit2)*3; isRotated = false;
+                }
+
+                x = positionsArr[localIdx3];
+                y = positionsArr[localIdx3+1];
+                z = positionsArr[localIdx3+2];
+
+                const mass = physicsData[i3];
+                const phase = physicsData[i3+1];
+                const tumbleSpeed = physicsData[i3+2]; 
+
+                if(isRotated) {
+                    anglesArr[localIdx1] += tumbleSpeed * CONFIG.tumbleSpeedMult; 
+                }
+
+                velocities[i3]   += (Math.random() - 0.5) * CONFIG.brownianForce;
+                velocities[i3+1] += (Math.random() - 0.5) * CONFIG.brownianForce;
+                velocities[i3+2] += (Math.random() - 0.5) * CONFIG.brownianForce;
+                velocities[i3+1] -= CONFIG.gravity * mass;
+
+                if (shakeEnergy > 0.001) {
+                    velocities[i3]   += (Math.random() - 0.5) * 0.05 * shakeEnergy;
+                    velocities[i3+1] += (Math.random() - 0.5) * 0.05 * shakeEnergy;
+                    velocities[i3+2] += (Math.random() - 0.5) * 0.05 * shakeEnergy;
+                }
+
+                velocities[i3]   *= CONFIG.drag;
+                velocities[i3+1] *= CONFIG.drag;
+                velocities[i3+2] *= CONFIG.drag;
+
+                const vSq = velocities[i3]**2 + velocities[i3+1]**2 + velocities[i3+2]**2;
+                if (vSq > CONFIG.maxVelocity**2) {
+                    const scale = CONFIG.maxVelocity / Math.sqrt(vSq);
+                    velocities[i3] *= scale; velocities[i3+1] *= scale; velocities[i3+2] *= scale;
+                }
+
+                x += velocities[i3];
+                y += velocities[i3+1];
+                z += velocities[i3+2];
+
+                if(y < CONFIG.floorLevel) {
+                    y = CONFIG.floorLevel;
+                    velocities[i3] *= 0.9; velocities[i3+1] = 0; velocities[i3+2] *= 0.9;
+                }
+
+                const dist = Math.sqrt(x*x + y*y + z*z);
+                if (dist > safeRadius) {
+                    const push = 0.0005 * (dist - safeRadius);
+                    velocities[i3]   -= (x/dist) * push;
+                    velocities[i3+1] -= (y/dist) * push;
+                    velocities[i3+2] -= (z/dist) * push;
+                    if (dist > CONFIG.radius - 0.1) {
+                         const scl = (CONFIG.radius - 0.15) / dist;
+                         x *= scl; y *= scl; z *= scl;
+                         velocities[i3] *= -0.5; velocities[i3+1] *= -0.5; velocities[i3+2] *= -0.5;
+                    }
+                }
+
+                positionsArr[localIdx3] = x;
+                positionsArr[localIdx3+1] = y;
+                positionsArr[localIdx3+2] = z;
+
+                // GLITTER LOGIC
+                const angleFactor = isRotated ? anglesArr[localIdx1] : 0;
+                const flashTrigger = Math.sin(angleFactor * 2.0 + sparkleTime + phase);
+                
+                let brightness;
+                if (flashTrigger > CONFIG.glitterThreshold) {
+                    brightness = CONFIG.flashIntensity;
+                } else {
+                    brightness = CONFIG.baseBrightness;
+                }
+                colorsArr[localIdx3] = brightness;
+                colorsArr[localIdx3+1] = brightness;
+                colorsArr[localIdx3+2] = brightness + 0.1;
+            }
+            
+            geo1.attributes.position.needsUpdate = true; geo1.attributes.customColor.needsUpdate = true; geo1.attributes.angle.needsUpdate = true;
+            geo2.attributes.position.needsUpdate = true; geo2.attributes.customColor.needsUpdate = true; geo2.attributes.angle.needsUpdate = true;
+            geo3.attributes.position.needsUpdate = true; geo3.attributes.color.needsUpdate = true;
+            
+            controls.update(); 
+            renderer.clear(); 
+            renderer.render(scene, camera);
+            requestAnimationFrame(updatePhysics);
+        };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        updatePhysics();
+
+    </script>
+</body>
+</html>
